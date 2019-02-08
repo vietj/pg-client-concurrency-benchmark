@@ -156,31 +156,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>package-benchmark</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <archive>
-                <manifest>
-                  <mainClass>com.julienviet.benchmark.Benchmark</mainClass>
-                </manifest>
-              </archive>
-              <finalName>benchmark</finalName>
-              <appendAssemblyId>false</appendAssemblyId>
-              <descriptors>
-                <descriptor>src/assembly/benchmark.xml</descriptor>
-              </descriptors>
-              <attach>false</attach>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
