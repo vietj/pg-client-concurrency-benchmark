@@ -1,0 +1,42 @@
+== PostgreSQL client concurrency Benchmarking
+
+What does this benchmark measure ?
+
+Client latencies over a single connection to PostgreSQL using a bunch
+clients under various concurrency configuration.
+
+=== Running the benchmark
+
+```
+> mvn clean package
+> java -jar target/benchmark.jar --connect-uri=postgres://postgres:postgres@localhost:5432/postgres "select from table where id=0"
+```
+
+The URI follows the LibPQ https://www.postgresql.org/docs/9.3/libpq-connect.html#LIBPQ-CONNSTRING[format]
+
+Using a local PostgreSQL instance started by this tool when no connect uri is specified
+
+```
+> mvn clean package
+> java -jar target/benchmark.jar
+```
+
+WARNING: the benchmark will run against localhost
+
+By default tests run with the Reactive PostgreSQL client, you can also run with JDBC:
+
+```
+> java -jar target/benchmark.jar --client=JDBC "select from table where id=0"
+```
+
+You can set the number of times the statement is executed:
+
+```
+> java -jar target/benchmark.jar --count=5000 "select from table where id=0"
+```
+
+You can set the connection pipelining (exclusive to the Reactive PostgreSQL client):
+
+```
+> java -jar target/benchmark.jar --pipelining=10 "select from table where id=0"
+```
