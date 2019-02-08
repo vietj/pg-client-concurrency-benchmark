@@ -20,7 +20,6 @@ import io.reactiverse.pgclient.PgPoolOptions;
 import io.reactiverse.pgclient.PgPreparedQuery;
 import io.reactiverse.pgclient.Tuple;
 import io.vertx.core.Vertx;
-import org.HdrHistogram.Histogram;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -44,7 +43,7 @@ import org.postgresql.PGProperty;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.SampleTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@OutputTimeUnit(TimeUnit.SECONDS)
 @Warmup(iterations = 5, time = 1)
 @Measurement(iterations = 5, time = 1)
 @Fork(2)
@@ -57,7 +56,7 @@ public class ClientBenchmark {
   private int pipelining;
 
   @Param("5000")
-  int count = 5000;
+  int count;
 
   @Param("SELECT NOW()")
   String sql;
@@ -67,7 +66,7 @@ public class ClientBenchmark {
   PreparedStatement preparedStatement;
   PgPreparedQuery pgPreparedQuery;
   int columns;
-  Tuple EMPTY_TUPLE;
+  Tuple emptyTuple;
 
   @Setup
   public void initClient(BenchmarkParams params) throws Exception {
@@ -76,19 +75,18 @@ public class ClientBenchmark {
     } else {
       options = PgBootstrap.startPg();
     }
-    options.setPipeliningLimit(pipelining);
-    final String benchmarkName = params.getBenchmark();
+    String benchmarkName = params.getBenchmark();
     //there is no need to specify a specific param for this one:
     //there isn't any third option for the client type!
     if (benchmarkName.contains("jdbc")) {
-      final Properties props = new Properties();
+      Properties props = new Properties();
       PGProperty.PREPARE_THRESHOLD.set(props, -1);
       PGProperty.BINARY_TRANSFER.set(props, "true");
       PGProperty.USER.set(props, "postgres");
       PGProperty.PASSWORD.set(props, "postgres");
-      final Connection conn = DriverManager.getConnection("jdbc:postgresql://" + options.getHost() + ":" + options.getPort() + "/postgres", props);
-      this.preparedStatement = conn.prepareStatement(sql);
-      this.columns = preparedStatement.getMetaData().getColumnCount();
+      Connection conn = DriverManager.getConnection("jdbc:postgresql://" + options.getHost() + ":" + options.getPort() + "/postgres", props);
+      preparedStatement = conn.prepareStatement(sql);
+      columns = preparedStatement.getMetaData().getColumnCount();
       tearDown = () -> {
         try {
           preparedStatement.close();
@@ -101,26 +99,19 @@ public class ClientBenchmark {
           ex.printStackTrace();
         }
       };
-
     } else {
-      final Vertx vertx = Vertx.vertx();
-      final PgPool client = PgClient.pool(vertx, new PgPoolOptions().setHost(options.getHost()).setPort(options.getPort()).setDatabase(options.getDatabase()).setUser(options.getUser()).setPassword(options.getPassword()).setCachePreparedStatements(true));
-      final CompletableFuture<Runnable> result = new CompletableFuture<>();
-      EMPTY_TUPLE = Tuple.tuple();
-
+      options.setPipeliningLimit(pipelining);
+      Vertx vertx = Vertx.vertx();
+      PgPool client = PgClient.pool(vertx, new PgPoolOptions(options));
+      CompletableFuture<Void> result = new CompletableFuture<>();
+      emptyTuple = Tuple.tuple();
       client.getConnection(ar1 -> {
         if (ar1.succeeded()) {
           final PgConnection pgConnection = ar1.result();
           pgConnection.prepare(sql, ar2 -> {
             if (ar2.succeeded()) {
-              final PgPreparedQuery pgPreparedQuery = ar2.result();
-              this.pgPreparedQuery = pgPreparedQuery;
-              result.complete(() -> {
-                pgPreparedQuery.close();
-                pgConnection.close();
-                client.close();
-                vertx.close();
-              });
+              pgPreparedQuery = ar2.result();
+              result.complete(null);
             } else {
               result.completeExceptionally(ar2.cause());
             }
@@ -129,7 +120,8 @@ public class ClientBenchmark {
           result.completeExceptionally(ar1.cause());
         }
       });
-      tearDown = result.get();
+      result.get();
+      tearDown = vertx::close;
     }
   }
 
@@ -167,7 +159,7 @@ public class ClientBenchmark {
         result.complete(null);
       }
     } else if (count > 0) {
-      query.execute(EMPTY_TUPLE, ar3 -> {
+      query.execute(emptyTuple, ar3 -> {
         if (ar3.failed()) {
           if (!result.isDone()) {
             result.completeExceptionally(ar3.cause());
