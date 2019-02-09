@@ -34,11 +34,11 @@ public enum Client {
         Properties props = new Properties();
         PGProperty.PREPARE_THRESHOLD.set(props, -1);
         PGProperty.BINARY_TRANSFER.set(props, "true");
-        PGProperty.USER.set(props, "postgres");
-        PGProperty.PASSWORD.set(props, "postgres");
+        PGProperty.USER.set(props, options.getUser());
+        PGProperty.PASSWORD.set(props, options.getPassword());
         Connection conn = DriverManager.getConnection("jdbc:postgresql://"
           + options.getHost() + ":"
-          + options.getPort() + "/postgres", props);
+          + options.getPort() + "/" + options.getDatabase(), props);
         PreparedStatement ps = conn.prepareStatement(sql);
         for (int i = 0;i < count;i++) {
           long now = System.nanoTime();
