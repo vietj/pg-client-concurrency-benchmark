@@ -84,15 +84,15 @@ public class Benchmark implements Callable<Void> {
   }
 
   private long getMinResponseTimeMillis() {
-    return TimeUnit.NANOSECONDS.toMillis(histogram.getMinValue());
+    return TimeUnit.NANOSECONDS.toMicros(histogram.getMinValue());
   }
 
   private long getMaxResponseTimeMillis() {
-    return TimeUnit.NANOSECONDS.toMillis(histogram.getMaxValue());
+    return TimeUnit.NANOSECONDS.toMicros(histogram.getMaxValue());
   }
 
   private long getResponseTimeMillisPercentile(double x) {
-    return TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(x));
+    return TimeUnit.NANOSECONDS.toMicros(histogram.getValueAtPercentile(x));
   }
 
   // select id, randomnumber from WORLD where id=1
