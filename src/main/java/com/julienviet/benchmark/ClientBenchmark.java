@@ -81,9 +81,9 @@ public class ClientBenchmark {
       Properties props = new Properties();
       PGProperty.PREPARE_THRESHOLD.set(props, -1);
       PGProperty.BINARY_TRANSFER.set(props, "true");
-      PGProperty.USER.set(props, "postgres");
-      PGProperty.PASSWORD.set(props, "postgres");
-      Connection conn = DriverManager.getConnection("jdbc:postgresql://" + options.getHost() + ":" + options.getPort() + "/postgres", props);
+      PGProperty.USER.set(props, options.getUser());
+      PGProperty.PASSWORD.set(props, options.getPassword());
+      Connection conn = DriverManager.getConnection("jdbc:postgresql://" + options.getHost() + ":" + options.getPort() + "/" + options.getDatabase(), props);
       preparedStatement = conn.prepareStatement(sql);
       columns = preparedStatement.getMetaData().getColumnCount();
       tearDown = () -> {
