@@ -101,9 +101,10 @@ public class ClientBenchmark {
         }
       };
     } else {
-      options.setPipeliningLimit(pipelining);
       Vertx vertx = Vertx.vertx();
-      PgPool client = PgClient.pool(vertx, new PgPoolOptions(options));
+      PgPool client = PgClient.pool(vertx, new PgPoolOptions(options)
+        .setPipeliningLimit(pipelining)
+        .setCachePreparedStatements(true));
       CompletableFuture<Void> result = new CompletableFuture<>();
       emptyTuple = Tuple.tuple();
       client.getConnection(ar1 -> {
