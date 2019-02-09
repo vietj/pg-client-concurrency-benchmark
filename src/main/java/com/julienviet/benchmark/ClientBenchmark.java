@@ -17,6 +17,8 @@ import io.reactiverse.pgclient.PgConnection;
 import io.reactiverse.pgclient.PgPool;
 import io.reactiverse.pgclient.PgPoolOptions;
 import io.reactiverse.pgclient.PgPreparedQuery;
+import io.reactiverse.pgclient.PgRowSet;
+import io.reactiverse.pgclient.Row;
 import io.reactiverse.pgclient.Tuple;
 import io.vertx.core.Vertx;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -164,8 +166,13 @@ public class ClientBenchmark {
             result.completeExceptionally(ar3.cause());
           }
         } else {
-          //TODO consuming each column value for each row is a better option
-          blackhole.consume(ar3.result());
+          PgRowSet rows = ar3.result();
+          for (Row row : rows) {
+            int size = row.size();
+            for (int i = 0;i < size;i++) {
+              blackhole.consume(row.getValue(i));
+            }
+          }
           execute(query, remaining, result, blackhole);
         }
       });
