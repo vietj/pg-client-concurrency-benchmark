@@ -141,42 +141,30 @@ public class ClientBenchmark {
 
   @Benchmark
   public void reactiveBurstQuery(Blackhole blackhole) throws ExecutionException, InterruptedException {
-    final AtomicInteger remaining = new AtomicInteger(count);
-    final PgPreparedQuery query = pgPreparedQuery;
-    final CompletableFuture<Void> result = new CompletableFuture<>();
-    for (int i = 0; i < Math.min(count, options.getPipeliningLimit()); i++) {
-      execute(query, remaining, result, blackhole);
-    }
-    result.get();
-  }
-
-  private void execute(PgPreparedQuery query,
-                       AtomicInteger remaining,
-                       CompletableFuture<Void> result,
-                       Blackhole blackhole) {
-    int count = remaining.getAndDecrement();
-    if (count == 0) {
-      if (!result.isDone()) {
-        result.complete(null);
-      }
-    } else if (count > 0) {
-      query.execute(emptyTuple, ar3 -> {
-        if (ar3.failed()) {
+    PgPreparedQuery query = pgPreparedQuery;
+    CompletableFuture<Void> result = new CompletableFuture<>();
+    for (int i = 0;i < count;i++) {
+      boolean last = i + 1 == count;
+      query.execute(emptyTuple, ar -> {
+        if (ar.failed()) {
           if (!result.isDone()) {
-            result.completeExceptionally(ar3.cause());
+            result.completeExceptionally(ar.cause());
           }
         } else {
-          PgRowSet rows = ar3.result();
+          PgRowSet rows = ar.result();
           for (Row row : rows) {
             int size = row.size();
-            for (int i = 0;i < size;i++) {
-              blackhole.consume(row.getValue(i));
+            for (int j = 0;j < size;j++) {
+              blackhole.consume(row.getValue(j));
             }
           }
-          execute(query, remaining, result, blackhole);
+          if (last && !result.isDone()) {
+            result.complete(null);
+          }
         }
       });
     }
+    result.get();
   }
 
   @TearDown
